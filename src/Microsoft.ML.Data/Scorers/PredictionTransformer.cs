@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.IO;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using Microsoft.ML.Data.IO;
+using Microsoft.ML.Internal.Utilities;
 using Microsoft.ML.Runtime;
 
 [assembly: LoadableClass(typeof(BinaryPredictionTransformer<IPredictorProducing<float>>), typeof(BinaryPredictionTransformer), null, typeof(SignatureLoadModel),
@@ -95,6 +97,30 @@ namespace Microsoft.ML.Data
             // id of string: feature column.
 
             ctx.LoadModel<TModel, SignatureLoadModel>(host, out TModel model, DirModel);
+            Model = model;
+
+            // Clone the stream with the schema into memory.
+            var ms = new MemoryStream();
+            ctx.TryLoadBinaryStream(DirTransSchema, reader =>
+            {
+                reader.BaseStream.CopyTo(ms);
+            });
+
+            ms.Position = 0;
+            var loader = new BinaryLoader(host, new BinaryLoader.Arguments(), ms);
+            TrainSchema = loader.Schema;
+        }
+
+        [BestFriend]
+        private protected PredictionTransformerBase(IHost host, ModelLoadContext ctx, TModel model)
+        {
+            //MYMARSHALINVOKE
+            Host = host;
+
+            // *** Binary format ***
+            // model: prediction model.
+            // stream: empty data view that contains train schema.
+            // id of string: feature column.
             Model = model;
 
             // Clone the stream with the schema into memory.
@@ -203,6 +229,22 @@ namespace Microsoft.ML.Data
         private protected SingleFeaturePredictionTransformerBase(IHost host, ModelLoadContext ctx)
             : base(host, ctx)
         {
+            FeatureColumnName = ctx.LoadStringOrNull();
+
+            if (FeatureColumnName == null)
+                FeatureColumnType = null;
+            else if (!TrainSchema.TryGetColumnIndex(FeatureColumnName, out int col))
+                throw Host.ExceptSchemaMismatch(nameof(FeatureColumnName), "feature", FeatureColumnName);
+            else
+                FeatureColumnType = TrainSchema[col].Type;
+
+            BindableMapper = ScoreUtils.GetSchemaBindableMapper(Host, ModelAsPredictor);
+        }
+
+        private protected SingleFeaturePredictionTransformerBase(IHost host, ModelLoadContext ctx, TModel model)
+            : base(host, ctx, model)
+        {
+            //MYMARSHALINVOKE
             FeatureColumnName = ctx.LoadStringOrNull();
 
             if (FeatureColumnName == null)
@@ -475,6 +517,13 @@ namespace Microsoft.ML.Data
             Scorer = GetGenericScorer();
         }
 
+        internal RegressionPredictionTransformer(IHostEnvironment env, ModelLoadContext ctx, IHost host, TModel model)
+            : base(host, ctx, model)
+        {
+            //MYMARSHALINVOKE
+            Scorer = GetGenericScorer();
+        }
+
         private protected override void SaveCore(ModelSaveContext ctx)
         {
             Contracts.AssertValue(ctx);
@@ -613,7 +662,22 @@ namespace Microsoft.ML.Data
         public const string LoaderSignature = "RegressionPredXfer";
 
         public static RegressionPredictionTransformer<IPredictorProducing<float>> Create(IHostEnvironment env, ModelLoadContext ctx)
-            => new RegressionPredictionTransformer<IPredictorProducing<float>>(env, ctx);
+        {
+            //MYMARSHALINVOKE
+            // new RegressionPredictionTransformer<IPredictorProducing<float>>(env, ctx);
+
+            var host = Contracts.CheckRef(env, nameof(env)).Register(nameof(RegressionPredictionTransformer<IPredictorProducing<float>>));
+            ctx.LoadModel<IPredictorProducing<float>, SignatureLoadModel>(host, out IPredictorProducing<float> model, "Model"); // MYTODO: don't hardcode the DirModel or type T
+            return Utils.MarshalInvoke(CreateType<IPredictorProducing<float>>, model.GetType(), env, ctx, host, model);
+        }
+
+        public static RegressionPredictionTransformer<T> CreateType<T>(IHostEnvironment env, ModelLoadContext ctx, IHost host, T model) where T : class
+        {
+            //MYMARSHALINVOKE
+            // var host = Contracts.CheckRef(env, nameof(env)).Register(nameof(RegressionPredictionTransformer<T>));
+            // ctx.LoadModel<T, SignatureLoadModel>(host, out T model, "Model");
+            return new RegressionPredictionTransformer<T>(env, ctx, host, model);
+        }
     }
 
     internal static class RankingPredictionTransformer
