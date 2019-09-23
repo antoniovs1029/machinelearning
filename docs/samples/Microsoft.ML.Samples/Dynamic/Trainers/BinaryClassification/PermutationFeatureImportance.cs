@@ -9,61 +9,61 @@ namespace Samples.Dynamic.Trainers.BinaryClassification
     {
         public static void Example()
         {
-            // Create a new context for ML.NET operations. It can be used for
-            // exception tracking and logging, as a catalog of available operations
-            // and as the source of randomness.
-            var mlContext = new MLContext(seed:1);
+            //// Create a new context for ML.NET operations. It can be used for
+            //// exception tracking and logging, as a catalog of available operations
+            //// and as the source of randomness.
+            //var mlContext = new MLContext(seed:1);
 
-            // Create sample data.
-            var samples = GenerateData();
+            //// Create sample data.
+            //var samples = GenerateData();
 
-            // Load the sample data as an IDataView.
-            var data = mlContext.Data.LoadFromEnumerable(samples);
+            //// Load the sample data as an IDataView.
+            //var data = mlContext.Data.LoadFromEnumerable(samples);
 
-            // Define a training pipeline that concatenates features into a vector,
-            // normalizes them, and then trains a linear model.
-            var featureColumns =
-                new string[] { nameof(Data.Feature1), nameof(Data.Feature2) };
-            var pipeline = mlContext.Transforms
-                .Concatenate("Features", featureColumns)
-                .Append(mlContext.Transforms.NormalizeMinMax("Features"))
-                .Append(mlContext.BinaryClassification.Trainers
-                .SdcaLogisticRegression());
+            //// Define a training pipeline that concatenates features into a vector,
+            //// normalizes them, and then trains a linear model.
+            //var featureColumns =
+            //    new string[] { nameof(Data.Feature1), nameof(Data.Feature2) };
+            //var pipeline = mlContext.Transforms
+            //    .Concatenate("Features", featureColumns)
+            //    .Append(mlContext.Transforms.NormalizeMinMax("Features"))
+            //    .Append(mlContext.BinaryClassification.Trainers
+            //    .SdcaLogisticRegression());
 
-            // Fit the pipeline to the data.
-            var model = pipeline.Fit(data);
+            //// Fit the pipeline to the data.
+            //var model = pipeline.Fit(data);
 
-            // Transform the dataset.
-            var transformedData = model.Transform(data);
+            //// Transform the dataset.
+            //var transformedData = model.Transform(data);
 
-            // Extract the predictor.
-            var linearPredictor = model.LastTransformer;
+            //// Extract the predictor.
+            //var linearPredictor = model.LastTransformer;
 
-            // Compute the permutation metrics for the linear model using the
-            // normalized data.
-            var permutationMetrics = mlContext.BinaryClassification
-                .PermutationFeatureImportance(linearPredictor, transformedData,
-                permutationCount: 30);
+            //// Compute the permutation metrics for the linear model using the
+            //// normalized data.
+            //var permutationMetrics = mlContext.BinaryClassification
+            //    .PermutationFeatureImportance(linearPredictor, transformedData,
+            //    permutationCount: 30);
 
-            // Now let's look at which features are most important to the model
-            // overall. Get the feature indices sorted by their impact on AUC.
-            var sortedIndices = permutationMetrics
-                .Select((metrics, index) => new { index, metrics.AreaUnderRocCurve})
-                .OrderByDescending(
-                feature => Math.Abs(feature.AreaUnderRocCurve.Mean))
-                .Select(feature => feature.index);
+            //// Now let's look at which features are most important to the model
+            //// overall. Get the feature indices sorted by their impact on AUC.
+            //var sortedIndices = permutationMetrics
+            //    .Select((metrics, index) => new { index, metrics.AreaUnderRocCurve})
+            //    .OrderByDescending(
+            //    feature => Math.Abs(feature.AreaUnderRocCurve.Mean))
+            //    .Select(feature => feature.index);
 
-            Console.WriteLine("Feature\tModel Weight\tChange in AUC"
-                + "\t95% Confidence in the Mean Change in AUC");
-            var auc = permutationMetrics.Select(x => x.AreaUnderRocCurve).ToArray();
-            foreach (int i in sortedIndices)
-            {
-                Console.WriteLine("{0}\t{1:0.00}\t{2:G4}\t{3:G4}",
-                    featureColumns[i],
-                    linearPredictor.Model.SubModel.Weights[i],
-                    auc[i].Mean,
-                    1.96 * auc[i].StandardError);
-            }
+            //Console.WriteLine("Feature\tModel Weight\tChange in AUC"
+            //    + "\t95% Confidence in the Mean Change in AUC");
+            //var auc = permutationMetrics.Select(x => x.AreaUnderRocCurve).ToArray();
+            //foreach (int i in sortedIndices)
+            //{
+            //    Console.WriteLine("{0}\t{1:0.00}\t{2:G4}\t{3:G4}",
+            //        featureColumns[i],
+            //        linearPredictor.Model.SubModel.Weights[i],
+            //        auc[i].Mean,
+            //        1.96 * auc[i].StandardError);
+            //}
 
             // Expected output:
             //  Feature     Model Weight Change in AUC  95% Confidence in the Mean Change in AUC
