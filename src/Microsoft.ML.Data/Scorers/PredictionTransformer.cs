@@ -4,11 +4,13 @@
 
 using System;
 using System.IO;
+using System.Reflection;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using Microsoft.ML.Data.IO;
 using Microsoft.ML.Internal.Utilities;
 using Microsoft.ML.Runtime;
+using Microsoft.ML.Trainers;
 
 [assembly: LoadableClass(typeof(BinaryPredictionTransformer<IPredictorProducing<float>>), typeof(BinaryPredictionTransformer), null, typeof(SignatureLoadModel),
     "", BinaryPredictionTransformer.LoaderSignature)]
@@ -16,7 +18,7 @@ using Microsoft.ML.Runtime;
 [assembly: LoadableClass(typeof(MulticlassPredictionTransformer<IPredictorProducing<VBuffer<float>>>), typeof(MulticlassPredictionTransformer), null, typeof(SignatureLoadModel),
     "", MulticlassPredictionTransformer.LoaderSignature)]
 
-[assembly: LoadableClass(typeof(RegressionPredictionTransformer<IPredictorProducing<float>>), typeof(RegressionPredictionTransformer), null, typeof(SignatureLoadModel),
+[assembly: LoadableClass(typeof(object), typeof(RegressionPredictionTransformer), null, typeof(SignatureLoadModel),
     "", RegressionPredictionTransformer.LoaderSignature)]
 
 [assembly: LoadableClass(typeof(RankingPredictionTransformer<IPredictorProducing<float>>), typeof(RankingPredictionTransformer), null, typeof(SignatureLoadModel),
@@ -661,22 +663,27 @@ namespace Microsoft.ML.Data
     {
         public const string LoaderSignature = "RegressionPredXfer";
 
-        public static RegressionPredictionTransformer<IPredictorProducing<float>> Create(IHostEnvironment env, ModelLoadContext ctx)
+        public static object Create(IHostEnvironment env, ModelLoadContext ctx)
         {
             //MYMARSHALINVOKE
-            // new RegressionPredictionTransformer<IPredictorProducing<float>>(env, ctx);
-
             var host = Contracts.CheckRef(env, nameof(env)).Register(nameof(RegressionPredictionTransformer<IPredictorProducing<float>>));
-            ctx.LoadModel<IPredictorProducing<float>, SignatureLoadModel>(host, out IPredictorProducing<float> model, "Model"); // MYTODO: don't hardcode the DirModel or type T
-            return Utils.MarshalInvoke(CreateType<IPredictorProducing<float>>, model.GetType(), env, ctx, host, model);
-        }
+            ctx.LoadModel<IPredictorProducing<float>, SignatureLoadModel>(host, out IPredictorProducing<float> model, "Model"); // MYTODO: don't hardcode the DirModel
 
-        public static RegressionPredictionTransformer<T> CreateType<T>(IHostEnvironment env, ModelLoadContext ctx, IHost host, T model) where T : class
-        {
-            //MYMARSHALINVOKE
-            // var host = Contracts.CheckRef(env, nameof(env)).Register(nameof(RegressionPredictionTransformer<T>));
-            // ctx.LoadModel<T, SignatureLoadModel>(host, out T model, "Model");
-            return new RegressionPredictionTransformer<T>(env, ctx, host, model);
+            Type generic = typeof(RegressionPredictionTransformer<>);
+            Type[] genericTypeArgs = { model.GetType() };
+            Type constructed = generic.MakeGenericType(genericTypeArgs);
+
+            Type[] constructorArgs = {
+                typeof(IHostEnvironment),
+                typeof(ModelLoadContext),
+                typeof(IHost),
+                model.GetType()
+            };
+
+            var genericCtor = constructed.GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, constructorArgs, null);
+            var genericInstance = genericCtor.Invoke(new object[] { env, ctx, host, model });
+
+            return genericInstance;
         }
     }
 

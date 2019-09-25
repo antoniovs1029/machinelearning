@@ -58,24 +58,26 @@ namespace Samples.Dynamic.Trainers.Regression
                 .Select(feature => feature.index);
 
             Console.WriteLine("Feature\tModel Weight\tChange in RMSE\t95%" +
-                "Confidence in the Mean Change in RMSE");
+                "Confidence in the Mean Change in RMSE\tSD");
 
             var rmse = permutationMetrics.Select(x => x.RootMeanSquaredError)
                 .ToArray();
 
             foreach (int i in sortedIndices)
             {
-                Console.WriteLine("{0}\t{1:0.00}\t{2:G4}\t{3:G4}",
+                Console.WriteLine("{0}\t{1:0.00}\t{2:G4}\t{3:G4}\t{4:G4}",
                     featureColumns[i],
                     linearPredictor.Model.Weights[i],
                     rmse[i].Mean,
-                    1.96 * rmse[i].StandardError);
+                    1.96 * rmse[i].StandardError,
+                    rmse[i].StandardDeviation);
             }
 
             // Expected output:
             //  Feature    Model Weight Change in RMSE  95% Confidence in the Mean Change in RMSE
             //  Feature2        9.00        4.009       0.008304
             //  Feature1        4.48        1.901       0.003351
+
         }
 
         private class Data
