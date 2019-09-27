@@ -45,11 +45,12 @@ namespace Samples.Dynamic.Trainers.BinaryClassification
             var transformedData = model.Transform(data);
 
             // What we got originally: BinaryPredictionTransformer<IPredictorProducing<float>>
-            // What we get after the fix: BinaryPredictionTransformer<ParameterMixingCalibratedModelParameters<IPredictorProducing<float>, ICalibrator>
+            // What we get after the fix to BPTransformer: BinaryPredictionTransformer<ParameterMixingCalibratedModelParameters<IPredictorProducing<float>, ICalibrator>
+            // What we get after the fix to ParameterMixingCalibrated... : BinaryPredictionTransformer<ParameterMixingCalibratedModelParameters<LinearBinaryModelParameters, PlattCalibrator>
             // What we should be getting: BinaryPredictionTransformer<CalibratedModelParametersBase<LinearBinaryModelParameters, PlattCalibrator>>
 
-            var linearPredictor = (model as TransformerChain<ITransformer>).LastTransformer as BinaryPredictionTransformer<CalibratedModelParametersBase<LinearBinaryModelParameters, PlattCalibrator>>;
-            // var linearPredictor = (model as TransformerChain<ITransformer>).LastTransformer as BinaryPredictionTransformer<ParameterMixingCalibratedModelParameters<IPredictorProducing<float>, ICalibrator>>;
+            //var linearPredictor = (model as TransformerChain<ITransformer>).LastTransformer as BinaryPredictionTransformer<CalibratedModelParametersBase<LinearBinaryModelParameters, PlattCalibrator>>;
+            var linearPredictor = (model as TransformerChain<ITransformer>).LastTransformer as BinaryPredictionTransformer<object>;
             // var linearPredictor = model.LastTransformer;
 
             // Compute the permutation metrics for the linear model using the
@@ -71,11 +72,11 @@ namespace Samples.Dynamic.Trainers.BinaryClassification
             var auc = permutationMetrics.Select(x => x.AreaUnderRocCurve).ToArray();
             foreach (int i in sortedIndices)
             {
-                Console.WriteLine("{0}\t{1:0.00}\t{2:G4}\t{3:G4}",
-                    featureColumns[i],
-                    linearPredictor.Model.SubModel.Weights[i],
-                    auc[i].Mean,
-                    1.96 * auc[i].StandardError);
+                //Console.WriteLine("{0}\t{1:0.00}\t{2:G4}\t{3:G4}",
+                //    featureColumns[i],
+                //    linearPredictor.Model.SubModel.Weights[i],
+                //    auc[i].Mean,
+                //    1.96 * auc[i].StandardError);
             }
 
             // Expected output:
