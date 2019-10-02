@@ -50,7 +50,9 @@ namespace Samples.Dynamic.Trainers.BinaryClassification
             // What we should be getting: BinaryPredictionTransformer<CalibratedModelParametersBase<LinearBinaryModelParameters, PlattCalibrator>>
 
             //var linearPredictor = (model as TransformerChain<ITransformer>).LastTransformer as BinaryPredictionTransformer<CalibratedModelParametersBase<LinearBinaryModelParameters, PlattCalibrator>>;
-            var linearPredictor = (model as TransformerChain<ITransformer>).LastTransformer as BinaryPredictionTransformer<object>;
+            var linearPredictor = (model as TransformerChain<ITransformer>).LastTransformer as ISingleFeaturePredictionTransformer<object>;
+            var predictorModel = linearPredictor.Model as CalibratedModelParametersBase<LinearBinaryModelParameters,PlattCalibrator>;
+            var predictorSubModel = predictorModel.SubModel as LinearBinaryModelParameters;
             // var linearPredictor = model.LastTransformer;
 
             // Compute the permutation metrics for the linear model using the
@@ -72,11 +74,11 @@ namespace Samples.Dynamic.Trainers.BinaryClassification
             var auc = permutationMetrics.Select(x => x.AreaUnderRocCurve).ToArray();
             foreach (int i in sortedIndices)
             {
-                //Console.WriteLine("{0}\t{1:0.00}\t{2:G4}\t{3:G4}",
-                //    featureColumns[i],
-                //    linearPredictor.Model.SubModel.Weights[i],
-                //    auc[i].Mean,
-                //    1.96 * auc[i].StandardError);
+                Console.WriteLine("{0}\t{1:0.00}\t{2:G4}\t{3:G4}",
+                    featureColumns[i],
+                    predictorModel.SubModel.Weights[i],
+                    auc[i].Mean,
+                    1.96 * auc[i].StandardError);
             }
 
             // Expected output:
