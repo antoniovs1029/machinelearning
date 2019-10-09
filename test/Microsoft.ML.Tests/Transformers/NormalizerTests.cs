@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using Microsoft.ML.Data;
 using Microsoft.ML.Data.IO;
 using Microsoft.ML.Experimental;
@@ -885,6 +886,53 @@ namespace Microsoft.ML.Tests.Transformers
             Assert.Equal(0f, transformedDataArray[2].Features[0]);
             Assert.Equal(0f, transformedDataArray[2].Features[1]);
             Assert.Equal(0f, transformedDataArray[2].Features[4]);
+        }
+
+        public class TensorData
+        {
+            private const int dim1 = 2;
+            private const int dim2 = 3;
+            private const int dim3 = 4;
+            private const int size = dim1 * dim2 * dim3;
+
+            [VectorType(dim1, dim2, dim3)]
+            public float[] input { get; set; }
+
+            public static TensorData[] GetTensorData()
+            {
+                var tensor1 = Enumerable.Range(0, size).Select(
+                x => (float)x).ToArray();
+
+                var tensor2 = Enumerable.Range(0, size).Select(
+                x => (float)(x + 10000)).ToArray();
+
+                return new TensorData[]
+                {
+                    new TensorData() { input = tensor1},
+                    new TensorData() { input = tensor2}
+                };
+            }
+        }
+
+        [Fact]
+        void TestSavingNormalizerWithMultidimensionalVector()
+        {
+            var samples = TensorData.GetTensorData();
+            var data = ML.Data.LoadFromEnumerable(samples);
+            var model = ML.Transforms.NormalizeMinMax("output", "input").Fit(data);
+            var transformedData = model.Transform(data);
+
+            var modelAndSchemaPath = GetOutputPath("TestSavingNormalizerWithMultidimensionalVector.zip");
+            ML.Model.Save(model, data.Schema, modelAndSchemaPath);
+            var loadedModel = ML.Model.Load(modelAndSchemaPath, out var schema);
+            var transformedData2 = loadedModel.Transform(data);
+
+            var dimlen1 = (transformedData.Schema["output"].Type as VectorDataViewType).Dimensions.Length;
+            var dimlen2 = (transformedData2.Schema["output"].Type as VectorDataViewType).Dimensions.Length;
+
+            Assert.True(dimlen1 == dimlen2);
+
+            Console.WriteLine("hi");
         }
     }
 }
