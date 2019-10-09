@@ -930,7 +930,7 @@ namespace Microsoft.ML.Tests.Transformers
             var dimensions1 = (transformedData.Schema["output"].Type as VectorDataViewType).Dimensions;
             var dimensions2 = (transformedData2.Schema["output"].Type as VectorDataViewType).Dimensions;
 
-            Assert.True(dimensions1.Equals(dimensions2));
+            Assert.True(dimensions1.SequenceEqual(dimensions2));
         }
     }
 }
