@@ -81,7 +81,9 @@ namespace Microsoft.ML.Tests.Transformers
                 var saver = new TextSaver(Env, new TextSaver.Arguments { Silent = true });
                 using (var fs = File.Create(outputPath))
                 {
-                    var transformedData = est.Fit(data).Transform(data);
+                    var normalizer = est.Fit(data);
+                    var transformedData = normalizer.Transform(data);
+                    ML.Model.Save(normalizer, data.Schema, @"C:\Users\anvelazq\mymodel.zip");
                     var dataView = ML.Transforms.DropColumns(new[] { "float0" }).Fit(transformedData).Transform(transformedData);
                     DataSaverUtils.SaveDataView(ch, saver, dataView, fs, keepHidden: true);
                 }
