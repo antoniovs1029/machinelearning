@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 using Samples.Dynamic;
-using SchemaAppML.ConsoleApp;
+using ConsoleApp10ML.ConsoleApp;
 
 namespace Microsoft.ML.Samples
 {
