@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <NativeAssemblyReference Include="MklImports" />
+    <NativeAssemblyReference Include="CpuMathNative" />
     <NativeAssemblyReference Condition="'$(OS)' == 'Windows_NT'" Include="libiomp5md" />
   </ItemGroup>
 
