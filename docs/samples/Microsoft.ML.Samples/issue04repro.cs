@@ -6,15 +6,14 @@ using System.IO;
 using System.Linq;
 using Microsoft.ML;
 using Microsoft.ML.Data;
-using SchemaAppML.ConsoleApp;
-using SchemaAppML.Model;
+using ConsoleApp10ML.Model;
 
-namespace SchemaAppML.ConsoleApp
+namespace ConsoleApp10ML.ConsoleApp
 {
     public static class ModelBuilder
     {
-        private static string TRAIN_DATA_FILEPATH = @"C:\Users\anvelazq\Desktop\issue04\workaround\Animals\89ca11c0-be37-4af5-9b05-3aa7274cb641.tsv";
-        private static string MODEL_FILEPATH = @"C:\Users\anvelazq\Desktop\issue04.zip";
+        private static string TRAIN_DATA_FILEPATH = @"C:\Users\anvelazq\Desktop\issue04\original-problem\tiny\image.meta.tsv";
+        private static string MODEL_FILEPATH = @"C:\Users\anvelazq\Desktop\modelis04.zip";
 
         // Create MLContext to be shared across the model creation workflow objects 
         // Set a random seed for repeatable/deterministic results across multiple trainings.
@@ -47,11 +46,11 @@ namespace SchemaAppML.ConsoleApp
         {
             // Data process configuration with pipeline data transformations 
             var dataProcessPipeline = mlContext.Transforms.Conversion.MapValueToKey("Label", "Label")
-                                      .Append(mlContext.Transforms.LoadImages("ImageSource_featurized", @"C:\Users\beccam\AppData\Local\Temp", "ImageSource"))
-                                      .Append(mlContext.Transforms.ResizeImages("ImageSource_featurized", 224, 224, "ImageSource_featurized"))
-                                      .Append(mlContext.Transforms.ExtractPixels("ImageSource_featurized", "ImageSource_featurized"))
-                                      .Append(mlContext.Transforms.DnnFeaturizeImage("ImageSource_featurized", m => m.ModelSelector.ResNet18(mlContext, m.OutputColumn, m.InputColumn), "ImageSource_featurized"))
-                                      .Append(mlContext.Transforms.Concatenate("Features", new[] { "ImageSource_featurized", "Title", "URL" }))
+                                      .Append(mlContext.Transforms.LoadImages("ImagePath_featurized", @"C:\Users\xiaoyuz\Desktop\machinelearning-samples\datasets\images", "ImagePath"))
+                                      .Append(mlContext.Transforms.ResizeImages("ImagePath_featurized", 224, 224, "ImagePath_featurized"))
+                                      .Append(mlContext.Transforms.ExtractPixels("ImagePath_featurized", "ImagePath_featurized"))
+                                      .Append(mlContext.Transforms.DnnFeaturizeImage("ImagePath_featurized", m => m.ModelSelector.ResNet18(mlContext, m.OutputColumn, m.InputColumn), "ImagePath_featurized"))
+                                      .Append(mlContext.Transforms.Concatenate("Features", new[] { "ImagePath_featurized" }))
                                       .Append(mlContext.Transforms.NormalizeMinMax("Features", "Features"))
                                       .AppendCacheCheckpoint(mlContext);
 
@@ -91,7 +90,6 @@ namespace SchemaAppML.ConsoleApp
 
         public static string GetAbsolutePath(string relativePath)
         {
-
             return relativePath;
         }
 
@@ -161,8 +159,9 @@ namespace SchemaAppML.ConsoleApp
     }
 }
 
+
 #region ModelInput.cs
-namespace SchemaAppML.Model
+namespace ConsoleApp10ML.Model
 {
     public class ModelInput
     {
@@ -171,23 +170,24 @@ namespace SchemaAppML.Model
 
 
         [ColumnName("Title"), LoadColumn(1)]
-        public float Title { get; set; }
+        public string Title { get; set; }
 
 
-        [ColumnName("URL"), LoadColumn(2)]
-        public float URL { get; set; }
+        [ColumnName("Url"), LoadColumn(2)]
+        public string Url { get; set; }
 
 
-        [ColumnName("ImageSource"), LoadColumn(3)]
-        public string ImageSource { get; set; }
+        [ColumnName("ImagePath"), LoadColumn(3)]
+        public string ImagePath { get; set; }
 
 
     }
 }
+
 #endregion
 
 #region ModelOutput.cs
-namespace SchemaAppML.Model
+namespace ConsoleApp10ML.Model
 {
     public class ModelOutput
     {
