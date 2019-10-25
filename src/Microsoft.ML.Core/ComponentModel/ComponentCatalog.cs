@@ -193,10 +193,10 @@ namespace Microsoft.ML.Runtime
                         Contracts.Assert(Utils.Size(ctorArgs) == 0);
                         return InstanceGetter.Invoke(null, null);
                     }
-                    if (Constructor != null)
-                        return Constructor.Invoke(ctorArgs);
                     if (CreateMethod != null)
                         return CreateMethod.Invoke(null, ctorArgs);
+                    if (Constructor != null)
+                        return Constructor.Invoke(ctorArgs);
                 }
                 catch (TargetInvocationException ex)
                 {
@@ -417,18 +417,32 @@ namespace Microsoft.ML.Runtime
             var parmTypesWithEnv = Utils.Concat(new Type[1] { typeof(IHostEnvironment) }, parmTypes);
             if (Utils.Size(parmTypes) == 0 && (getter = FindInstanceGetter(instType, loaderType)) != null)
                 return true;
-            if (instType.IsAssignableFrom(loaderType) && (ctor = loaderType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, parmTypes ?? Type.EmptyTypes, null)) != null)
-                return true;
-            if (instType.IsAssignableFrom(loaderType) && (ctor = loaderType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, parmTypesWithEnv ?? Type.EmptyTypes, null)) != null)
+            if ((create = FindCreateMethod(instType, loaderType, parmTypes ?? Type.EmptyTypes)) == null)
             {
-                requireEnvironment = true;
-                return true;
+                create = FindCreateMethod(instType, loaderType, parmTypesWithEnv ?? Type.EmptyTypes);
+                if(create != null)
+                    requireEnvironment = true;
             }
-            if ((create = FindCreateMethod(instType, loaderType, parmTypes ?? Type.EmptyTypes)) != null)
-                return true;
-            if ((create = FindCreateMethod(instType, loaderType, parmTypesWithEnv ?? Type.EmptyTypes)) != null)
+
+            if (instType.IsAssignableFrom(loaderType) && (ctor = loaderType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, parmTypes ?? Type.EmptyTypes, null)) == null)
             {
-                requireEnvironment = true;
+                if(instType.IsAssignableFrom(loaderType))
+                {
+                    ctor = loaderType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, parmTypesWithEnv ?? Type.EmptyTypes, null);
+                    if(ctor != null)
+                    {
+                        requireEnvironment = true;
+                    }
+                }
+            }
+
+            if  (create != null && ctor != null)
+            {
+                // throw new System.ArgumentException($"Its me {loaderType.ToString()}", "original");
+            }
+
+            if (create != null || ctor != null)
+            {
                 return true;
             }
 
