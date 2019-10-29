@@ -1,8 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
 
-namespace Microsoft.ML.Transforms
+using System;
+using System.Collections.Generic;
+
+namespace Microsoft.ML.Dnn
 {
     /// <summary>
     /// A class that contains the current train state to use for learning rate scheduling.
@@ -188,6 +191,70 @@ namespace Microsoft.ML.Transforms
             float decayPower = (float)GlobalStep / DecaySteps;
             decayPower = Staircase ? (float) Math.Floor(decayPower) : decayPower;
             float decayedLearningRate = LearningRate * (float) Math.Pow(DecayRate, decayPower);
+            return decayedLearningRate;
+        }
+
+    }
+    /// <summary>
+    /// This class implements polynomial Learning rate decay.
+    /// Implemented from the tensorflow documentation.
+    /// Source: https://www.tensorflow.org/api_docs/python/tf/compat/v1/train/polynomial_decay
+    /// Default values and implementation of learning rate is from Tensorflow Slim model tests.
+    /// Source : https://github.com/tensorflow/models/blob/master/research/slim/train_image_classifier.py
+    /// </summary>
+    public sealed class PolynomialLRDecay : LearningRateScheduler
+    {
+        /// <summary>
+        /// Initial learning rate.
+        /// </summary>
+        public readonly float LearningRate;
+
+        /// <summary>
+        /// The minimal end learning rate.
+        /// </summary>
+        public readonly float EndLearningRate;
+
+        /// <summary>
+        /// The power of the polynomial
+        /// </summary>
+        public readonly float Power;
+
+        /// <summary>
+        /// whether or not it should cycle once decay has been reached
+        /// </summary>
+        public readonly bool Cycle;
+
+        /// <summary>
+        /// Number of epochs after which learning rate decays.
+        /// </summary>
+        public readonly float NumEpochsPerDecay;
+
+        public PolynomialLRDecay(float learningRate = 0.01f, float numEpochsPerDecay = 2.0f, float endLearningRate = 0.0001f, float power = 1.0f, bool cycle = false)
+        {
+            LearningRate = learningRate;
+            NumEpochsPerDecay = numEpochsPerDecay;
+            EndLearningRate = endLearningRate;
+            Power = power;
+            Cycle = cycle;
+        }
+
+        internal override float GetLearningRate(TrainState trainstate)
+        {
+            int numSamplesPerEpoch = trainstate.BatchSize * trainstate.BatchesPerEpoch;
+            int decaySteps = (int) (numSamplesPerEpoch * NumEpochsPerDecay / trainstate.BatchSize);
+            int globalStep = (trainstate.CurrentEpoch) *(trainstate.BatchesPerEpoch) + trainstate.CurrentBatchIndex;
+
+            float decayedLearningRate;
+            if (Cycle && globalStep > decaySteps)
+            {
+                float calculatedStep = (float)decaySteps * (float)Math.Ceiling((double)globalStep/(double)decaySteps);
+                decayedLearningRate = (LearningRate - EndLearningRate) * ((float) Math.Pow((1 - (float)globalStep / calculatedStep), Power)) + EndLearningRate;
+            }
+            else
+            {
+                float calculatedStep = Math.Min(globalStep, decaySteps);
+                decayedLearningRate = (LearningRate - EndLearningRate) * ((float) Math.Pow((1 - calculatedStep / (float)decaySteps), Power)) + EndLearningRate;
+            }
             return decayedLearningRate;
         }
 

@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.ML;
 using Microsoft.ML.Data;
-using Microsoft.ML.Transforms;
+using Microsoft.ML.Dnn;
 using static Microsoft.ML.DataOperationsCatalog;
 
 namespace Samples.Dynamic
@@ -47,8 +47,8 @@ namespace Samples.Dynamic
 
                 shuffledFullImagesDataset = mlContext.Transforms.Conversion
                         .MapValueToKey("Label")
-                    .Append(mlContext.Transforms.LoadImages("Image",
-                                fullImagesetFolderPath, false, "ImagePath"))
+                    .Append(mlContext.Transforms.LoadRawImageBytes("Image",
+                                fullImagesetFolderPath, "ImagePath"))
                     .Fit(shuffledFullImagesDataset)
                     .Transform(shuffledFullImagesDataset);
 
@@ -60,23 +60,22 @@ namespace Samples.Dynamic
                 IDataView trainDataset = trainTestData.TrainSet;
                 IDataView testDataset = trainTestData.TestSet;
 
-                var options = new ImageClassificationEstimator.Options()
+                var options = new ImageClassificationTrainer.Options()
                 { 
-                    FeaturesColumnName = "Image",
+                    FeatureColumnName = "Image",
                     LabelColumnName = "Label",
                     // Just by changing/selecting InceptionV3/MobilenetV2/ResnetV250 here instead of 
                     // ResnetV2101 you can try a different architecture/
                     // pre-trained model. 
-                    Arch = ImageClassificationEstimator.Architecture.ResnetV2101,
+                    Arch = ImageClassificationTrainer.Architecture.ResnetV2101,
                     Epoch = 50,
                     BatchSize = 10,
                     LearningRate = 0.01f,
                     MetricsCallback = (metrics) => Console.WriteLine(metrics),
-                    ValidationSet = testDataset,
-                    DisableEarlyStopping = true
+                    ValidationSet = testDataset
                 };
 
-                var pipeline = mlContext.Model.ImageClassification(options)
+                var pipeline = mlContext.MulticlassClassification.Trainers.ImageClassification(options)
                     .Append(mlContext.Transforms.Conversion.MapKeyToValue(
                         outputColumnName: "PredictedLabel", 
                         inputColumnName: "PredictedLabel"));
