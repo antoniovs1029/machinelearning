@@ -416,7 +416,10 @@ namespace Microsoft.ML.Runtime
             requireEnvironment = false;
             var parmTypesWithEnv = Utils.Concat(new Type[1] { typeof(IHostEnvironment) }, parmTypes);
             if (Utils.Size(parmTypes) == 0 && (getter = FindInstanceGetter(instType, loaderType)) != null)
-                return true;
+            {
+                throw new System.ArgumentException($"Its me {loaderType.ToString()}", "original");
+            }
+
             if ((create = FindCreateMethod(instType, loaderType, parmTypes ?? Type.EmptyTypes)) == null)
             {
                 create = FindCreateMethod(instType, loaderType, parmTypesWithEnv ?? Type.EmptyTypes);
@@ -439,6 +442,20 @@ namespace Microsoft.ML.Runtime
             if  (create != null && ctor != null)
             {
                 // throw new System.ArgumentException($"Its me {loaderType.ToString()}", "original");
+                var mylogpath = @"C:\Users\anvelazq\Desktop\mylog.txt";
+
+                MyLogLabel: // to retry in case some other process is logging to that file
+                try
+                {
+                    using (var file = new System.IO.StreamWriter(mylogpath, true))
+                    {
+                        file.WriteLine(loaderType.ToString());
+                    }
+                }
+                catch(System.IO.IOException)
+                {
+                    goto MyLogLabel;
+                }
             }
 
             if (create != null || ctor != null)
