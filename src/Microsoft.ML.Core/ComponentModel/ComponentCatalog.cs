@@ -168,10 +168,10 @@ namespace Microsoft.ML.Runtime
 
                 if (getter != null)
                     InstanceGetter = getter;
-                else if (ctor != null)
-                    Constructor = ctor;
                 else if (create != null)
                     CreateMethod = create;
+                else if (ctor != null)
+                    Constructor = ctor;
                 ArgType = attr.ArgType;
                 SignatureTypes = attr.SigTypes.AsReadOnly();
                 CtorTypes = attr.CtorTypes ?? Type.EmptyTypes;
@@ -417,10 +417,11 @@ namespace Microsoft.ML.Runtime
             var parmTypesWithEnv = Utils.Concat(new Type[1] { typeof(IHostEnvironment) }, parmTypes);
             if (Utils.Size(parmTypes) == 0 && (getter = FindInstanceGetter(instType, loaderType)) != null)
             {
-                throw new System.ArgumentException($"Its me {loaderType.ToString()}", "original");
+                throw new ArgumentException($"Its me {loaderType.ToString()}", "original");
             }
 
-            if ((create = FindCreateMethod(instType, loaderType, parmTypes ?? Type.EmptyTypes)) == null)
+            create = FindCreateMethod(instType, loaderType, parmTypes ?? Type.EmptyTypes);
+            if (create == null)
             {
                 create = FindCreateMethod(instType, loaderType, parmTypesWithEnv ?? Type.EmptyTypes);
                 if(create != null)
@@ -441,7 +442,7 @@ namespace Microsoft.ML.Runtime
 
             if  (create != null && ctor != null)
             {
-                // throw new System.ArgumentException($"Its me {loaderType.ToString()}", "original");
+                // Log if a class have both a create method and a constructor
                 var mylogpath = @"C:\Users\anvelazq\Desktop\mylog.txt";
 
                 MyLogLabel: // to retry in case some other process is logging to that file

@@ -1,6 +1,6 @@
 using System;
 using System.Reflection;
-// using Samples.Dynamic.Trainers.BinaryClassification;
+using Samples.Dynamic.Trainers.BinaryClassification;
 
 namespace Microsoft.ML.Samples
 {
@@ -10,7 +10,7 @@ namespace Microsoft.ML.Samples
 
         internal static void RunAll()
         {
-            // PermutationFeatureImportanceLoadFromDisk.Example();
+            PermutationFeatureImportanceLoadFromDisk.Example();
         }
     }
 }
