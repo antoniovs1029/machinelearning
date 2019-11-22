@@ -200,12 +200,11 @@ namespace Microsoft.ML.Model.OnnxConverter
         /// there is a collision between names in the pipeline at any point.
         /// </summary>
         /// <param name="colName">IDataView column name.</param>
-        /// <param name="makeUniqueName">Whether a unique name should be chosen for this variable.</param>
         /// <returns>Unique variable name.</returns>
-        public string AddVariable(string colName, bool makeUniqueName = true)
+        public string AddVariable(string colName)
         {
             _host.CheckNonEmpty(colName, nameof(colName));
-            _columnNameMap[colName] = makeUniqueName ? GetUniqueName(colName, _variableNames.Contains) : colName;
+            _columnNameMap[colName] = GetUniqueName(colName, _variableNames.Contains);
             _variableNames.Add(_columnNameMap[colName]);
             return _columnNameMap[colName];
         }
@@ -270,56 +269,56 @@ namespace Microsoft.ML.Model.OnnxConverter
         }
 
         /// Adds constant tensor into the graph.
-        public override string AddInitializer(float value, string name = null, bool makeUniqueName = true)
+        public override string AddInitializer(float value, string name = null)
         {
-            name = AddVariable(name ?? "float", makeUniqueName);
+            name = AddVariable(name ?? "float");
             _initializers.Add(OnnxUtils.MakeFloat(name, value));
             return name;
         }
 
-        public override string AddInitializer(string value, string name = null, bool makeUniqueName = true)
+        public override string AddInitializer(string value, string name = null)
         {
-            name = AddVariable(name ?? "string", makeUniqueName);
+            name = AddVariable(name ?? "string");
             _initializers.Add(OnnxUtils.MakeString(name, value));
             return name;
         }
 
-        public override string AddInitializer(long value, string name = null, bool makeUniqueName = true)
+        public override string AddInitializer(long value, string name = null)
         {
-            name = AddVariable(name ?? "int64", makeUniqueName);
+            name = AddVariable(name ?? "int64");
             _initializers.Add(OnnxUtils.MakeInt64(name, value));
             return name;
         }
 
-        public override string AddInitializer(IEnumerable<float> values, IEnumerable<long> dims, string name = null, bool makeUniqueName = true)
+        public override string AddInitializer(IEnumerable<float> values, IEnumerable<long> dims, string name = null)
         {
             _host.CheckValue(values, nameof(values));
             if (dims != null)
                 _host.Check(dims.Aggregate((x, y) => x * y) == values.Count(), "Number of elements doesn't match tensor size");
 
-            name = AddVariable(name ?? "floats", makeUniqueName);
+            name = AddVariable(name ?? "floats");
             _initializers.Add(OnnxUtils.MakeFloats(name, values, dims));
             return name;
         }
 
-        public override string AddInitializer(IEnumerable<long> values, IEnumerable<long> dims, string name = null, bool makeUniqueName = true)
+        public override string AddInitializer(IEnumerable<long> values, IEnumerable<long> dims, string name = null)
         {
             _host.CheckValue(values, nameof(values));
             if (dims != null)
                 _host.Check(dims.Aggregate((x, y) => x * y) == values.Count(), "Number of elements doesn't match tensor size");
 
-            name = AddVariable(name ?? "int64s", makeUniqueName);
+            name = AddVariable(name ?? "int64s");
             _initializers.Add(OnnxUtils.MakeInt64s(name, values, dims));
             return name;
         }
 
-        public override string AddInitializer(IEnumerable<string> values, IEnumerable<long> dims, string name = null, bool makeUniqueName = true)
+        public override string AddInitializer(IEnumerable<string> values, IEnumerable<long> dims, string name = null)
         {
             _host.CheckValue(values, nameof(values));
             if (dims != null)
                 _host.Check(dims.Aggregate((x, y) => x * y) == values.Count(), "Number of elements doesn't match tensor size");
 
-            name = AddVariable(name ?? "strings", makeUniqueName);
+            name = AddVariable(name ?? "strings");
             _initializers.Add(OnnxUtils.MakeStrings(name, values, dims));
             return name;
         }

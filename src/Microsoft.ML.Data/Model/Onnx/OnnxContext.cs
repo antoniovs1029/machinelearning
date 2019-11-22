@@ -128,27 +128,24 @@ namespace Microsoft.ML.Model.OnnxConverter
         /// </summary>
         /// <param name="value">The float number which is going to be added</param>
         /// <param name="name">A string used as a seed to generate this initializer's name in the ONNX graph.</param>
-        /// <param name="makeUniqueName">Whether a unique name should be picked for this initializer.</param>
         /// <returns>The initializer's ONNX name</returns>
-        public abstract string AddInitializer(float value, string name = null, bool makeUniqueName = true);
+        public abstract string AddInitializer(float value, string name = null);
 
         /// <summary>
         /// Call this function can declare a global long
         /// </summary>
         /// <param name="value">The long number which is going to be added into the ONNX graph</param>
         /// <param name="name">A string used as a seed to generate this initializer's name in the ONNX graph.</param>
-        /// <param name="makeUniqueName">Whether a unique name should be picked for this initializer.</param>
         /// <returns>The initializer's ONNX name</returns>
-        public abstract string AddInitializer(long value, string name = null, bool makeUniqueName = true);
+        public abstract string AddInitializer(long value, string name = null);
 
         /// <summary>
         /// Call this function can declare a global string
         /// </summary>
         /// <param name="value">The string which is going to be added into the ONNX graph</param>
         /// <param name="name">A string used as a seed to generate this initializer's name in the ONNX graph.</param>
-        /// <param name="makeUniqueName">Whether a unique name should be picked for this initializer.</param>
         /// <returns>The initializer's ONNX name</returns>
-        public abstract string AddInitializer(string value, string name = null, bool makeUniqueName = true);
+        public abstract string AddInitializer(string value, string name = null);
 
         /// <summary>
         /// Call this function can declare a global float tensor
@@ -156,9 +153,8 @@ namespace Microsoft.ML.Model.OnnxConverter
         /// <param name="values">The floats which are going to be added into the ONNX graph</param>
         /// <param name="dims">The shape that the floats</param>
         /// <param name="name">A string used as a seed to generate this initializer's name in the ONNX graph.</param>
-        /// <param name="makeUniqueName">Whether a unique name should be picked for this initializer.</param>
         /// <returns>The initializer's ONNX name</returns>
-        public abstract string AddInitializer(IEnumerable<float> values, IEnumerable<long> dims, string name = null, bool makeUniqueName = true);
+        public abstract string AddInitializer(IEnumerable<float> values, IEnumerable<long> dims, string name = null);
 
         /// <summary>
         /// Call this function can declare a global long tensor
@@ -166,9 +162,8 @@ namespace Microsoft.ML.Model.OnnxConverter
         /// <param name="values">The longs which are going to be added into the ONNX graph</param>
         /// <param name="dims">The shape that the floats</param>
         /// <param name="name">A string used as a seed to generate this initializer's name in the ONNX graph.</param>
-        /// <param name="makeUniqueName">Whether a unique name should be picked for this initializer.</param>
         /// <returns>The initializer's ONNX name</returns>
-        public abstract string AddInitializer(IEnumerable<long> values, IEnumerable<long> dims, string name = null, bool makeUniqueName = true);
+        public abstract string AddInitializer(IEnumerable<long> values, IEnumerable<long> dims, string name = null);
 
         /// <summary>
         /// Call this function can declare a global string tensor
@@ -176,8 +171,7 @@ namespace Microsoft.ML.Model.OnnxConverter
         /// <param name="values">The strings which are going to be added into the ONNX graph</param>
         /// <param name="dims">The shape that the strings</param>
         /// <param name="name">A string used as a seed to generate this initializer's name in the ONNX graph.</param>
-        /// <param name="makeUniqueName">Whether a unique name should be picked for this initializer.</param>
         /// <returns>The initializer's ONNX name</returns>
-        public abstract string AddInitializer(IEnumerable<string> values, IEnumerable<long> dims, string name = null, bool makeUniqueName = true);
+        public abstract string AddInitializer(IEnumerable<string> values, IEnumerable<long> dims, string name = null);
     }
 }
