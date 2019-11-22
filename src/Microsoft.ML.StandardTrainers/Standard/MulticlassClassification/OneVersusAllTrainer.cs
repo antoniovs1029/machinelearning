@@ -364,29 +364,23 @@ namespace Microsoft.ML.Trainers
                 : base(env, RegistrationName, ctx)
         {
             // *** Binary format ***
-            // byte: OutputFormula as byte
+            // bool: useDist
             // int: predictor count
-            OutputFormula outputFormula = (OutputFormula)ctx.Reader.ReadByte();
+            bool useDist = ctx.Reader.ReadBoolByte();
             int len = ctx.Reader.ReadInt32();
             Host.CheckDecode(len > 0);
 
-            if (outputFormula == OutputFormula.Raw)
-            {
-                var predictors = new TScalarPredictor[len];
-                LoadPredictors(Host, predictors, ctx);
-                _impl = new ImplRaw(predictors);
-            }
-            else if (outputFormula == OutputFormula.ProbabilityNormalization)
+            if (useDist)
             {
                 var predictors = new IValueMapperDist[len];
                 LoadPredictors(Host, predictors, ctx);
                 _impl = new ImplDist(predictors);
             }
-            else if (outputFormula == OutputFormula.Softmax)
+            else
             {
                 var predictors = new TScalarPredictor[len];
                 LoadPredictors(Host, predictors, ctx);
-                _impl = new ImplSoftmax(predictors);
+                _impl = new ImplRaw(predictors);
             }
 
             DistType = new VectorDataViewType(NumberDataViewType.Single, _impl.Predictors.Length);
@@ -415,10 +409,9 @@ namespace Microsoft.ML.Trainers
             var preds = _impl.Predictors;
 
             // *** Binary format ***
-            // byte: _impl.OutputFormula as byte
+            // bool: useDist
             // int: predictor count
-            byte[] outputFormula = { (byte)_impl.OutputFormula };
-            ctx.Writer.WriteBytesNoCount(outputFormula, 1);
+            ctx.Writer.WriteBoolByte(_impl is ImplDist);
             ctx.Writer.Write(preds.Length);
 
             // Save other streams.
@@ -492,7 +485,6 @@ namespace Microsoft.ML.Trainers
 
         private abstract class ImplBase : ISingleCanSavePfa
         {
-            public OutputFormula OutputFormula;
             public abstract DataViewType InputType { get; }
             public abstract IValueMapper[] Predictors { get; }
             public abstract bool CanSavePfa { get; }
@@ -544,7 +536,6 @@ namespace Microsoft.ML.Trainers
                 CanSavePfa = Predictors.All(m => (m as ISingleCanSavePfa)?.CanSavePfa == true);
                 Contracts.AssertValue(inputType);
                 InputType = inputType;
-                OutputFormula = OutputFormula.Raw;
             }
 
             public override ValueMapper<VBuffer<float>, VBuffer<float>> GetMapper()
@@ -610,7 +601,6 @@ namespace Microsoft.ML.Trainers
                 CanSavePfa = Predictors.All(m => (m as IDistCanSavePfa)?.CanSavePfa == true);
                 Contracts.AssertValue(inputType);
                 InputType = inputType;
-                OutputFormula = OutputFormula.ProbabilityNormalization;
             }
 
             private bool IsValid(IValueMapperDist mapper, ref VectorDataViewType inputType)
@@ -722,7 +712,6 @@ namespace Microsoft.ML.Trainers
                 CanSavePfa = false;
                 Contracts.AssertValue(inputType);
                 InputType = inputType;
-                OutputFormula = OutputFormula.Softmax;
             }
 
             public override ValueMapper<VBuffer<float>, VBuffer<float>> GetMapper()
