@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.ML.Data;
 using Microsoft.ML.Internal.Utilities;
 using Microsoft.ML.Runtime;
@@ -535,6 +538,116 @@ namespace Microsoft.ML
                 }
 
             }
+        }
+
+        public TrainTestData StratifiedTrainTestSplit(IDataView data, string stratificationColumnName, double testFraction = 0.1, bool balance = false, bool shuffle = false)
+        {
+            var trainFraction = 1 - testFraction;
+            var stratificationColumn = data.Schema[stratificationColumnName];
+            Dictionary<uint, int> counters;
+
+            //counters = new Dictionary<uint, int>()
+            //{
+            //    {1, 3 },
+            //    {2, 2 },
+            //    {3, 4 },
+            //    {4, 3 },
+            //};
+
+            if (!balance)
+                counters = CreateStratifiedDictionaryFromKeyDataViewColumn(data, stratificationColumn, trainFraction);
+            else
+                counters = CreateBalancedDictionaryFromKeyDataViewColumn(data, stratificationColumn, trainFraction); ; //MYTODO: Implement true Balancing
+
+            if(shuffle)
+                data = ShuffleRows(data, shufflePoolSize: 2);
+
+            var trainFilter = new AntonioFilter(_env, new AntonioFilter.Options()
+            {
+                Column = stratificationColumnName,
+                Min = 0,
+                Max = testFraction,
+                Complement = false,
+                Dict = counters,
+            }, data);
+
+            var testFilter = new AntonioFilter(_env, new AntonioFilter.Options()
+            {
+                Column = stratificationColumnName,
+                Min = 0,
+                Max = testFraction,
+                Complement = true,
+                Dict = counters,
+            }, data);
+            // var x = new RowShufflingTransformer(_env, data);
+            return new TrainTestData(trainFilter, testFilter);
+        }
+
+        internal Dictionary<uint, int> CreateDictionaryFromKeyDataViewColumn(IDataView data, DataViewSchema.Column col)
+        {
+            // MYTODO: Is a "uint" dictionary/Cursor the way to go if it is actually of type KeyDataViewType??
+            var counters = new Dictionary<uint, int>();
+            using (var cursor = data.GetRowCursor(col))
+            {
+                uint intValue = default;
+                var intGetter = cursor.GetGetter<uint>(col);
+                while (cursor.MoveNext())
+                {
+                    intGetter(ref intValue);
+                    if (!counters.ContainsKey(intValue))
+                    {
+                        counters.Add(intValue, 0);
+                    }
+
+                    counters[intValue] += 1;
+                }
+            }
+            return counters;
+        }
+
+        internal Dictionary<uint, int> CreateStratifiedDictionaryFromKeyDataViewColumn(IDataView data, DataViewSchema.Column col, double trainFraction)
+        {
+            var counters = CreateDictionaryFromKeyDataViewColumn(data, col);
+            var rowsNumber = counters.Sum(x => x.Value);
+            var trainSize = trainFraction * rowsNumber;
+            int desiredSamples = 0;
+            var newcounters = new Dictionary<uint, int>();
+            foreach(KeyValuePair<uint, int> entry in counters)
+            {
+                desiredSamples = (int) Math.Floor(trainSize*entry.Value / rowsNumber); // MYTODO: 1) Should it be done with Floor or Ceiling. 2) Isn't there a workaround to the cast after Floor?
+
+                if(desiredSamples == 0) // MYTODO: What to do if desired samples are 0?
+                {
+                    throw new Exception("Desired samples are 0");
+                }
+
+                if(desiredSamples > entry.Value || desiredSamples == 0)
+                {
+                    throw new Exception($"Cannot create stratified train set because there's only {entry.Value} samples of class #{entry.Key}, but {desiredSamples} samples are needed"); // MYTODO: What kind of Exception should this throw?
+                }
+
+                newcounters.Add(entry.Key, desiredSamples);
+            }
+            return newcounters;
+        }
+
+        internal Dictionary<uint, int> CreateBalancedDictionaryFromKeyDataViewColumn(IDataView data, DataViewSchema.Column col, double trainFraction)
+        {
+            var counters = CreateDictionaryFromKeyDataViewColumn(data, col);
+            var rowsNumber = counters.Sum(x => x.Value);
+            var trainSize = trainFraction * rowsNumber;
+            int desiredSamples = (int) Math.Floor(trainSize / counters.Count);
+            var newcounters = new Dictionary<uint, int>();
+            foreach (KeyValuePair<uint, int> entry in counters)
+            {
+                if (desiredSamples > entry.Value)
+                {
+                    throw new Exception($"Cannot create balanced train set because there's only {entry.Value} samples of class #{entry.Key}, but {desiredSamples} samples are needed"); // MYTODO: What kind of Exception should this throw?
+                }
+
+                newcounters.Add(entry.Key, desiredSamples);
+            }
+            return newcounters;
         }
     }
 }
