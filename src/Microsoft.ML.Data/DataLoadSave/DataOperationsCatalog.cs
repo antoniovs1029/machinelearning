@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.ML.Data;
 using Microsoft.ML.Internal.Utilities;
 using Microsoft.ML.Runtime;
@@ -557,7 +556,7 @@ namespace Microsoft.ML
             if (!balance)
                 counters = CreateStratifiedDictionaryFromKeyDataViewColumn(data, stratificationColumn, trainFraction);
             else
-                counters = CreateBalancedDictionaryFromKeyDataViewColumn(data, stratificationColumn, trainFraction); ; //MYTODO: Implement true Balancing
+                counters = CreateBalancedDictionaryFromKeyDataViewColumn(data, stratificationColumn, trainFraction);
 
             if(shuffle)
                 data = ShuffleRows(data, shufflePoolSize: 2);
