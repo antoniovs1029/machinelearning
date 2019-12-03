@@ -35,24 +35,13 @@ namespace Microsoft.ML.Transforms
             [Argument(ArgumentType.Multiple | ArgumentType.Required, HelpText = "Column", ShortName = "col", SortOrder = 1, Purpose = SpecialPurpose.ColumnName)]
             public string Column;
 
-            [Argument(ArgumentType.Multiple, HelpText = "Minimum value (0 to 1 for key types)")]
-            public Double? Min;
-
-            [Argument(ArgumentType.Multiple, HelpText = "Maximum value (0 to 1 for key types)")]
-            public Double? Max;
-
             [Argument(ArgumentType.Multiple, HelpText = "If true, keep the values that fall outside the range.")]
             public bool Complement;
 
-            [Argument(ArgumentType.Multiple, HelpText = "If true, include in the range the values that are equal to min.")]
-            public bool IncludeMin = true;
-
-            [Argument(ArgumentType.Multiple, HelpText = "If true, include in the range the values that are equal to max.")]
-            public bool? IncludeMax;
-
-            public Dictionary<uint, int> Dict;
+            public Dictionary<uint, int> Dict; //MYTODO: Should I put ArgumenType in here and the other params?
         }
 
+        // MYTODO: Update this descriptions and the GetVersionInfo
         public const string Summary = "Filters a dataview on a column of type Single, Double or Key (contiguous). Keeps the values that are in the specified min/max range. "
             + "NaNs are always filtered out. If the input is a Key type, the min/max are considered percentages of the number of values.";
 
@@ -74,27 +63,8 @@ namespace Microsoft.ML.Transforms
 
         private readonly int _index;
         private readonly DataViewType _type;
-        private readonly Double _min;
-        private readonly Double _max;
         private readonly bool _complement;
-        private readonly bool _includeMin;
-        private readonly bool _includeMax;
         private readonly Dictionary<uint, int> _dict;
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="AntonioFilter"/>.
-        /// </summary>
-        /// <param name="env">Host Environment.</param>
-        /// <param name="input">Input <see cref="IDataView"/>. This is the output from previous transform or loader.</param>
-        /// <param name="column">Name of the input column.</param>
-        /// <param name="lowerBound">Minimum value (0 to 1 for key types).</param>
-        /// <param name="upperBound">Maximum value (0 to 1 for key types).</param>
-        /// <param name="includeUpperBound">Whether to include the upper bound.</param>
-        /// <param name="dict">Dictionary with counts</param>
-        public AntonioFilter(IHostEnvironment env, IDataView input, string column, Double lowerBound, Double upperBound, bool includeUpperBound, Dictionary<uint, int> dict)
-            : this(env, new Options() { Column = column, Min = lowerBound, Max = upperBound, IncludeMax = includeUpperBound, Dict = dict }, input)
-        {
-        }
 
         public AntonioFilter(IHostEnvironment env, Options options, IDataView input)
             : base(env, RegistrationName, input)
@@ -110,28 +80,8 @@ namespace Microsoft.ML.Transforms
                 _type = schema[_index].Type;
                 if (!IsValidAntonioFilterColumnType(ch, _type))
                     throw ch.ExceptUserArg(nameof(options.Column), "Column '{0}' does not have compatible type", options.Column);
-                if (_type is KeyDataViewType)
-                {
-                    if (options.Min < 0)
-                    {
-                        ch.Warning("specified min less than zero, will be ignored");
-                        options.Min = null;
-                    }
-                    if (options.Max > 1)
-                    {
-                        ch.Warning("specified max greater than one, will be ignored");
-                        options.Max = null;
-                    }
-                }
-                if (options.Min == null && options.Max == null)
-                    throw ch.ExceptUserArg(nameof(options.Min), "At least one of min and max must be specified.");
-                _min = options.Min ?? Double.NegativeInfinity;
-                _max = options.Max ?? Double.PositiveInfinity;
-                if (!(_min <= _max))
-                    throw ch.ExceptUserArg(nameof(options.Min), "min must be less than or equal to max");
+
                 _complement = options.Complement;
-                _includeMin = options.IncludeMin;
-                _includeMax = options.IncludeMax ?? (options.Max == null || (_type is KeyDataViewType && _max >= 1));
                 _dict = new Dictionary<uint, int>(options.Dict); // MYTODO: Is there a better way to copy a dictionary to avoid modifying the original?
             }
         }
@@ -143,30 +93,7 @@ namespace Microsoft.ML.Transforms
             ctx.CheckAtModel(GetVersionInfo());
 
             // *** Binary format ***
-            // int: sizeof(Float)
-            // int: id of column name
-            // double: min
-            // double: max
-            // byte: complement
-            int cbFloat = ctx.Reader.ReadInt32();
-            Host.CheckDecode(cbFloat == sizeof(float));
-
-            var column = ctx.LoadNonEmptyString();
-            var schema = Source.Schema;
-            if (!schema.TryGetColumnIndex(column, out _index))
-                throw Host.ExceptSchemaMismatch(nameof(schema), "source", column);
-
-            _type = schema[_index].Type;
-            if (_type != NumberDataViewType.Single && _type != NumberDataViewType.Double && _type.GetKeyCount() == 0)
-                throw Host.ExceptSchemaMismatch(nameof(schema), "source", column, "Single, Double or Key", _type.ToString());
-
-            _min = ctx.Reader.ReadDouble();
-            _max = ctx.Reader.ReadDouble();
-            if (!(_min <= _max))
-                throw Host.Except("min", "min must be less than or equal to max");
-            _complement = ctx.Reader.ReadBoolByte();
-            _includeMin = ctx.Reader.ReadBoolByte();
-            _includeMax = ctx.Reader.ReadBoolByte();
+            // MYTODO: Implement this constructor for loading?
         }
 
         public static AntonioFilter Create(IHostEnvironment env, ModelLoadContext ctx, IDataView input)
@@ -185,22 +112,7 @@ namespace Microsoft.ML.Transforms
             ctx.CheckAtModel();
             ctx.SetVersionInfo(GetVersionInfo());
 
-            // *** Binary format ***
-            // int: sizeof(Float)
-            // int: id of column name
-            // double: min
-            // double: max
-            // byte: complement
-            // byte: includeMin
-            // byte: includeMax
-            ctx.Writer.Write(sizeof(float));
-            ctx.SaveNonEmptyString(Source.Schema[_index].Name);
-            Host.Assert(_min < _max);
-            ctx.Writer.Write(_min);
-            ctx.Writer.Write(_max);
-            ctx.Writer.WriteBoolByte(_complement);
-            ctx.Writer.WriteBoolByte(_includeMin);
-            ctx.Writer.WriteBoolByte(_includeMax);
+            // MYTODO: Implement Saving method?
         }
 
         protected override bool? ShouldUseParallelCursors(Func<int, bool> predicate)
@@ -228,6 +140,7 @@ namespace Microsoft.ML.Transforms
 
         public override DataViewRowCursor[] GetRowCursorSet(IEnumerable<DataViewSchema.Column> columnsNeeded, int n, Random rand = null)
         {
+            // MYTODO: Is this still necessary if ShouldUseParallelCursors return false?
 
             Host.CheckValueOrNull(rand);
 
@@ -247,11 +160,7 @@ namespace Microsoft.ML.Transforms
 
         private DataViewRowCursor CreateCursorCore(DataViewRowCursor input, bool[] active)
         {
-            if (_type == NumberDataViewType.Single)
-                return new SingleRowCursor(this, input, active);
-            if (_type == NumberDataViewType.Double)
-                return new DoubleRowCursor(this, input, active);
-            Host.Assert(_type is KeyDataViewType);
+            Host.Assert(_type is KeyDataViewType); // MYTODO: Currently, only support for KeyDataViewType is provided
             return RowCursorBase.CreateKeyRowCursor(this, input, active);
         }
 
@@ -269,51 +178,18 @@ namespace Microsoft.ML.Transforms
         public static bool IsValidAntonioFilterColumnType(IExceptionContext ectx, DataViewType type)
         {
             ectx.CheckValue(type, nameof(type));
-
-            return type == NumberDataViewType.Single || type == NumberDataViewType.Double || type.GetKeyCount() > 0;
+            return type.GetKeyCount() > 0; // MYTODO: Currently, only support for KeyDataViewType is provided
         }
 
         private abstract class RowCursorBase : LinkedRowFilterCursorBase
         {
             protected readonly AntonioFilter Parent;
-            protected readonly Func<Double, bool> CheckBounds;
-            private readonly Double _min;
-            private readonly Double _max;
 
             protected RowCursorBase(AntonioFilter parent, DataViewRowCursor input, bool[] active)
                 : base(parent.Host, input, parent.OutputSchema, active)
             {
                 Parent = parent;
-                _min = Parent._min;
-                _max = Parent._max;
-                if (Parent._includeMin)
-                {
-                    if (Parent._includeMax)
-                        CheckBounds = Parent._complement ? (Func<Double, bool>)TestNotCC : TestCC;
-                    else
-                        CheckBounds = Parent._complement ? (Func<Double, bool>)TestNotCO : TestCO;
-                }
-                else
-                {
-                    if (Parent._includeMax)
-                        CheckBounds = Parent._complement ? (Func<Double, bool>)TestNotOC : TestOC;
-                    else
-                        CheckBounds = Parent._complement ? (Func<Double, bool>)TestNotOO : TestOO;
-                }
             }
-
-            // The following methods test if the value is in range, out of range including or excluding the range limits
-            // O - Open
-            // C - Close
-            // N - Not in range
-            private bool TestOO(Double value) => _min < value && value < _max;
-            private bool TestCO(Double value) => _min <= value && value < _max;
-            private bool TestOC(Double value) => _min < value && value <= _max;
-            private bool TestCC(Double value) => _min <= value && value <= _max;
-            private bool TestNotOO(Double value) => _min >= value || value >= _max;
-            private bool TestNotCO(Double value) => _min > value || value >= _max;
-            private bool TestNotOC(Double value) => _min >= value || value > _max;
-            private bool TestNotCC(Double value) => _min > value || value > _max;
 
             protected abstract Delegate GetGetter();
             /// <summary>
@@ -349,72 +225,6 @@ namespace Microsoft.ML.Transforms
             {
                 Contracts.Assert(filter._type is KeyDataViewType);
                 return new KeyRowCursor<TSrc>(filter, input, active);
-            }
-        }
-
-        private sealed class SingleRowCursor : RowCursorBase
-        {
-            private readonly ValueGetter<Single> _srcGetter;
-            private readonly ValueGetter<Single> _getter;
-            private Single _value;
-
-            public SingleRowCursor(AntonioFilter parent, DataViewRowCursor input, bool[] active)
-                : base(parent, input, active)
-            {
-                Ch.Assert(Parent._type == NumberDataViewType.Single);
-                _srcGetter = Input.GetGetter<Single>(Input.Schema[Parent._index]);
-                _getter =
-                    (ref Single value) =>
-                    {
-                        Ch.Check(IsGood, RowCursorUtils.FetchValueStateError);
-                        value = _value;
-                    };
-            }
-
-            protected override Delegate GetGetter()
-            {
-                Ch.Assert(Parent._type == NumberDataViewType.Single);
-                return _getter;
-            }
-
-            protected override bool Accept()
-            {
-                Ch.Assert(Parent._type == NumberDataViewType.Single);
-                _srcGetter(ref _value);
-                return CheckBounds(_value);
-            }
-        }
-
-        private sealed class DoubleRowCursor : RowCursorBase
-        {
-            private readonly ValueGetter<Double> _srcGetter;
-            private readonly ValueGetter<Double> _getter;
-            private Double _value;
-
-            public DoubleRowCursor(AntonioFilter parent, DataViewRowCursor input, bool[] active)
-                : base(parent, input, active)
-            {
-                Ch.Assert(Parent._type == NumberDataViewType.Double);
-                _srcGetter = Input.GetGetter<Double>(Input.Schema[Parent._index]);
-                _getter =
-                    (ref Double value) =>
-                    {
-                        Ch.Check(IsGood, RowCursorUtils.FetchValueStateError);
-                        value = _value;
-                    };
-            }
-
-            protected override Delegate GetGetter()
-            {
-                Ch.Assert(Parent._type == NumberDataViewType.Double);
-                return _getter;
-            }
-
-            protected override bool Accept()
-            {
-                Ch.Assert(Parent._type == NumberDataViewType.Double);
-                _srcGetter(ref _value);
-                return CheckBounds(_value);
             }
         }
 
@@ -458,8 +268,6 @@ namespace Microsoft.ML.Transforms
                 _conv(in _value, ref value);
                 if (value == 0 || value > _count)
                     return false;
-                //if (!CheckBounds(((uint)value - 0.5) / _count))
-                //    return false;
 
                 if (_dict[(uint) value] > 0)
                 {

@@ -565,8 +565,6 @@ namespace Microsoft.ML
             var trainFilter = new AntonioFilter(_env, new AntonioFilter.Options()
             {
                 Column = stratificationColumnName,
-                Min = 0,
-                Max = testFraction,
                 Complement = false,
                 Dict = counters,
             }, data);
@@ -574,12 +572,10 @@ namespace Microsoft.ML
             var testFilter = new AntonioFilter(_env, new AntonioFilter.Options()
             {
                 Column = stratificationColumnName,
-                Min = 0,
-                Max = testFraction,
                 Complement = true,
                 Dict = counters,
             }, data);
-            // var x = new RowShufflingTransformer(_env, data);
+
             return new TrainTestData(trainFilter, testFilter);
         }
 
