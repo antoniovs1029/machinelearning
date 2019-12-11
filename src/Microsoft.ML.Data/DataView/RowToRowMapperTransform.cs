@@ -182,8 +182,8 @@ namespace Microsoft.ML.Data
         {
             Host.AssertValue(predicate, "predicate");
             if (_bindings.AddedColumnIndices.Any(predicate))
-                return true;
-            return null;
+                return false;
+            return false;
         }
 
         protected override DataViewRowCursor GetRowCursorCore(IEnumerable<DataViewSchema.Column> columnsNeeded, Random rand = null)
