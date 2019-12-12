@@ -22,7 +22,6 @@ namespace Microsoft.ML.Internal.Utilities
         public readonly ReadOnlyMemory<char> Value;
         public readonly int Id;
         private readonly uint _hash;
-        private readonly string _strVal;
 
         /// <summary>
         /// NormStr's can only be created by the Pool.
@@ -30,8 +29,7 @@ namespace Microsoft.ML.Internal.Utilities
         private NormStr(ReadOnlyMemory<char> str, int id, uint hash)
         {
             Contracts.Assert(id >= 0 || id == -1 && str.IsEmpty);
-            _strVal = str.ToString();
-            Value = new ReadOnlyMemory<char>(_strVal.ToCharArray());
+            Value = str;
             Id = id;
             _hash = hash;
         }
