@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Samples.Dynamic.Trainers.MulticlassClassification;
+using Samples.Dynamic;
 
 namespace Microsoft.ML.Samples
 {
@@ -11,6 +12,7 @@ namespace Microsoft.ML.Samples
         internal static void RunAll()
         {
             Leak.Run();
+            // FeaturizeTextWithOptions.Example();
         }
     }
 }

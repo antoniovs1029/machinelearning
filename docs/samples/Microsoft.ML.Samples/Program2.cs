@@ -2559,7 +2559,8 @@ new TextLoader.Column("WordsFound_WebTFIDF", DataKind.String, 2501),
 
             var textColumns = new string[]
             {
-                "m:AdText", "m:AdTitle", "m:AlteredQuery", "m:BiddingKeyword", "m:BiddingKeyword_Cleansed", "m:BingAlteredQuery", "m:CleanAdTitle", "m:CleanBiddingKeyword", "m:CleanQuery", "m:CleansedAdDescription", "m:CleansedAdDescriptionPreSubs", "m:CleansedAdTitlePreSubs", "m:CleansedBiddingKeyword", "m:CleansedQuery", "m:LpTitle", "m:PreSubsAdText", "m:PreSubsAdTitle", "m:Query", "m:Query_Cleansed", "m:RawAlteredQuery", "m:RawLpTitle", "m:SecondaryQuery"
+                // "m:AdText", "m:AdTitle", "m:AlteredQuery", "m:BiddingKeyword", "m:BiddingKeyword_Cleansed", "m:BingAlteredQuery", "m:CleanAdTitle", "m:CleanBiddingKeyword", "m:CleanQuery", "m:CleansedAdDescription", "m:CleansedAdDescriptionPreSubs", "m:CleansedAdTitlePreSubs", "m:CleansedBiddingKeyword", "m:CleansedQuery", "m:LpTitle", "m:PreSubsAdText", "m:PreSubsAdTitle", "m:Query", "m:Query_Cleansed", "m:RawAlteredQuery", "m:RawLpTitle", "m:SecondaryQuery"
+                "m:AdText"
             };
 
             var featurizers = new List<TextFeaturizingEstimator>();
@@ -2567,12 +2568,19 @@ new TextLoader.Column("WordsFound_WebTFIDF", DataKind.String, 2501),
             {
                 var featurizer = mlContext.Transforms.Text.FeaturizeText(textColumn, new TextFeaturizingEstimator.Options()
                 {
-                    CharFeatureExtractor = null,
-                    WordFeatureExtractor = new WordBagEstimator.Options()
+                    CharFeatureExtractor = new WordBagEstimator.Options()
                     {
-                        NgramLength = 2,
+                        NgramLength = 4,
+                        UseAllLengths = true,
                         MaximumNgramsCount = new int[] { 200000 }
-                    }
+                    },
+                    WordFeatureExtractor = null
+                    //WordFeatureExtractor = new WordBagEstimator.Options()
+                    //{
+                    //    NgramLength = 4,
+                    //    UseAllLengths = true,
+                    //    MaximumNgramsCount = new int[] { 200000 }
+                    //}
                 });
                 featurizers.Add(featurizer);
             }
