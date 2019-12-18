@@ -36,7 +36,7 @@ namespace Microsoft.ML.Tests
             var model = ML.Regression.Trainers.OnlineGradientDescent().Fit(data);
 
             ImmutableArray<RegressionMetricsStatistics> pfi;
-            if(saveModel)
+            if (saveModel)
             {
                 var modelAndSchemaPath = GetOutputPath("TestPfiRegressionOnDenseFeatures.zip");
                 ML.Model.Save(model, data.Schema, modelAndSchemaPath);
@@ -86,7 +86,7 @@ namespace Microsoft.ML.Tests
 
             ImmutableArray<RegressionMetricsStatistics> pfi;
 
-            if(saveModel)
+            if (saveModel)
             {
                 var modelAndSchemaPath = GetOutputPath("TestPfiRegressionStandardDeviationAndErrorOnDenseFeatures.zip");
                 ML.Model.Save(model, data.Schema, modelAndSchemaPath);
@@ -155,7 +155,7 @@ namespace Microsoft.ML.Tests
             var model = ML.Regression.Trainers.OnlineGradientDescent().Fit(data);
 
             ImmutableArray<RegressionMetricsStatistics> results;
-            if(saveModel)
+            if (saveModel)
             {
                 var modelAndSchemaPath = GetOutputPath("TestPfiRegressionOnSparseFeatures.zip");
                 ML.Model.Save(model, data.Schema, modelAndSchemaPath);
@@ -305,6 +305,18 @@ namespace Microsoft.ML.Tests
 
             Done();
         }
+
+        [Fact]
+        public void TestBinaryClassificationWithoutCalibrator()
+        {
+            var dataPath = GetDataPath("breast-cancer.txt");
+            var ff = ML.BinaryClassification.Trainers.FastForest();
+            var data = ML.Data.LoadFromTextFile(dataPath,
+                            new[] { new TextLoader.Column("Label", DataKind.Boolean, 0),
+                            new TextLoader.Column("Features", DataKind.Single, 1, 9) });
+            var model = ff.Fit(data);
+            var pfi = ML.BinaryClassification.PermutationFeatureImportance(model, data);
+        }
         #endregion
 
         #region Multiclass Classification Tests
@@ -320,7 +332,7 @@ namespace Microsoft.ML.Tests
             var model = ML.MulticlassClassification.Trainers.LbfgsMaximumEntropy().Fit(data);
 
             ImmutableArray<MulticlassClassificationMetricsStatistics> pfi;
-            if(saveModel)
+            if (saveModel)
             {
                 var modelAndSchemaPath = GetOutputPath("TestPfiMulticlassClassificationOnDenseFeatures.zip");
                 ML.Model.Save(model, data.Schema, modelAndSchemaPath);
@@ -374,7 +386,7 @@ namespace Microsoft.ML.Tests
                 new LbfgsMaximumEntropyMulticlassTrainer.Options { MaximumNumberOfIterations = 1000 }).Fit(data);
 
             ImmutableArray<MulticlassClassificationMetricsStatistics> pfi;
-            if(saveModel)
+            if (saveModel)
             {
                 var modelAndSchemaPath = GetOutputPath("TestPfiMulticlassClassificationOnSparseFeatures.zip");
                 ML.Model.Save(model, data.Schema, modelAndSchemaPath);
@@ -431,7 +443,7 @@ namespace Microsoft.ML.Tests
             var model = ML.Ranking.Trainers.FastTree().Fit(data);
 
             ImmutableArray<RankingMetricsStatistics> pfi;
-            if(saveModel)
+            if (saveModel)
             {
                 var modelAndSchemaPath = GetOutputPath("TestPfiRankingOnDenseFeatures.zip");
                 ML.Model.Save(model, data.Schema, modelAndSchemaPath);
@@ -480,7 +492,7 @@ namespace Microsoft.ML.Tests
             var model = ML.Ranking.Trainers.FastTree().Fit(data);
 
             ImmutableArray<RankingMetricsStatistics> pfi;
-            if(saveModel)
+            if (saveModel)
             {
                 var modelAndSchemaPath = GetOutputPath("TestPfiRankingOnSparseFeatures.zip");
                 ML.Model.Save(model, data.Schema, modelAndSchemaPath);
