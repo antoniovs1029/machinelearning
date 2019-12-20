@@ -205,8 +205,12 @@ namespace Microsoft.ML.Tests
         public void TestPfiBinaryClassificationOnDenseFeatures(bool saveModel)
         {
             var data = GetDenseDataset(TaskType.BinaryClassification);
-            var model = ML.BinaryClassification.Trainers.LbfgsLogisticRegression(
-                new LbfgsLogisticRegressionBinaryTrainer.Options { NumberOfThreads = 1 }).Fit(data);
+            var pipeline = ML.BinaryClassification.Trainers.LbfgsLogisticRegression(
+                new LbfgsLogisticRegressionBinaryTrainer.Options { NumberOfThreads = 1 });
+                
+            var model = pipeline.Fit(data);
+            var tdata = model.Transform(data);
+            var prev = tdata.Preview();
 
             ImmutableArray<BinaryClassificationMetricsStatistics> pfi;
             if (saveModel)
