@@ -418,8 +418,14 @@ namespace Microsoft.ML.Data
         internal static bool CanWrapTrainingLabels(ISchemaBoundMapper mapper, DataViewType labelNameType)
         {
             if (GetTypesForWrapping(mapper, labelNameType, AnnotationUtils.Kinds.TrainingLabelValues, out var scoreType))
+            {
+                var vectorType = labelNameType as VectorDataViewType;
+                if (vectorType != null && vectorType.Size == 1 && scoreType.GetVectorSize() == 2)
+                    return true;
+
                 // Check that the type is vector, and is of compatible size with the score output.
-                return labelNameType is VectorDataViewType vectorType && vectorType.Size == scoreType.GetVectorSize();
+                return vectorType != null && vectorType.Size == scoreType.GetVectorSize();
+            }
             return false;
         }
 
@@ -458,8 +464,14 @@ namespace Microsoft.ML.Data
         internal static bool CanWrapSlotNames(ISchemaBoundMapper mapper, DataViewType labelNameType)
         {
             if (GetTypesForWrapping(mapper, labelNameType, AnnotationUtils.Kinds.SlotNames, out var scoreType))
+            {
+                var vectorType = labelNameType as VectorDataViewType ;
+                if (vectorType != null && vectorType.Size == 1 && scoreType.GetVectorSize() == 2)
+                    return true;
+
                 // Check that the type is vector, and is of compatible size with the score output.
-                return labelNameType is VectorDataViewType vectorType && vectorType.Size == scoreType.GetVectorSize() && vectorType.ItemType == TextDataViewType.Instance;
+                return vectorType != null && vectorType.Size == scoreType.GetVectorSize() && vectorType.ItemType == TextDataViewType.Instance;
+            }
             return false;
         }
 
