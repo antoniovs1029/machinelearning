@@ -227,7 +227,8 @@ namespace Microsoft.ML.Transforms
                     // Construct kvMaps.
                     Contracts.Assert(types[iinfo] == null);
                     var typeSrc = schema[ColMapNewToOld[iinfo]].Type;
-                    var typeVals = schema[ColMapNewToOld[iinfo]].Annotations.Schema.GetColumnOrNull(AnnotationUtils.Kinds.KeyValues)?.Type;
+                    var x = schema[ColMapNewToOld[iinfo]].Annotations.Schema.GetColumnOrNull(AnnotationUtils.Kinds.KeyValues);
+                    var typeVals = x?.Type;
                     Host.Check(typeVals != null, "Metadata KeyValues does not exist");
                     DataViewType valsItemType = typeVals.GetItemType();
                     DataViewType srcItemType = typeSrc.GetItemType();
