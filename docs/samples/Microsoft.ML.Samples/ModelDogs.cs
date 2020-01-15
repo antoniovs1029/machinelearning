@@ -22,7 +22,8 @@ namespace Microsoft.ML.Samples
 
     public static class ModelBuilder
     {
-        private static string TRAIN_DATA_FILEPATH = @"C:\Users\anvelazq\Desktop\issue19\dogs2.tsv";
+        // private static string TRAIN_DATA_FILEPATH = @"C:\Users\anvelazq\Desktop\issue19\dogs.tsv";
+        private static string TRAIN_DATA_FILEPATH = @"C:\Users\anvelazq\Desktop\issue19\dogs-cats-horses.tsv";
 
         private static MLContext mlContext = new MLContext(seed: 1);
 
@@ -39,12 +40,14 @@ namespace Microsoft.ML.Samples
                                       .Append(mlContext.Transforms.LoadRawImageBytes("ImageSource_featurized", null, "ImageSource"))
                                       .Append(mlContext.Transforms.CopyColumns("Features", "ImageSource_featurized"));
 
-            var trainer = mlContext.MulticlassClassification.Trainers.ImageClassification(new ImageClassificationTrainer.Options() { LabelColumnName = "Label", FeatureColumnName = "Features" })
-                                      .Append(mlContext.Transforms.Conversion.MapKeyToValue("PredictedLabel", "PredictedLabel"));
+            var trainer = mlContext.MulticlassClassification.Trainers.ImageClassification(new ImageClassificationTrainer.Options() {
+                LabelColumnName = "Label", FeatureColumnName = "Features" });
             var trainingPipeline = dataProcessPipeline.Append(trainer);
 
             var model = trainingPipeline.Fit(trainingDataView);
 
+            var x = model.Transform(trainingDataView);
+            var y = x.Preview();
         }
     }
 }
