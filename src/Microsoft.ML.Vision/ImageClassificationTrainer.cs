@@ -603,7 +603,8 @@ namespace Microsoft.ML.Vision
                     (string)labelType.ToString());
             }
 
-            _classCount = labelCount == 1 ? 2 : (int)labelCount;
+            //_classCount = labelCount == 1 ? 2 : (int)labelCount;
+            _classCount = (int) labelCount;
             var imageSize = ImagePreprocessingSize[_options.Arch];
             _session = LoadTensorFlowSessionFromMetaGraph(Host, _options.Arch).Session;
             _session.graph.as_default();
@@ -1365,7 +1366,7 @@ namespace Microsoft.ML.Vision
             string graphOutputTensor) : base(env, LoaderSignature)
         {
             Host.AssertValue(session);
-            Host.Assert(classCount > 1);
+           // Host.Assert(classCount > 1);
             Host.AssertNonEmpty(imagePreprocessorTensorInput);
             Host.AssertNonEmpty(imagePreprocessorTensorOutput);
             Host.AssertNonEmpty(graphInputTensor);
