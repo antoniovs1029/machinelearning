@@ -77,7 +77,8 @@ namespace Samples.Dynamic
             for (int i = 0; i < count; i++)
             {
                 // Generate Labels that are integers 1, 2 or 3
-                var label = random.Next(1, 10);
+                // var label = random.Next(1, 10);
+                var label = 1;
                 yield return new DataPoint
                 {
                     Label = (uint)label,

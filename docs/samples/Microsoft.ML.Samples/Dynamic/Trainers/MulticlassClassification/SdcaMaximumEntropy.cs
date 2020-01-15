@@ -104,7 +104,7 @@ namespace Samples.Dynamic.Trainers.MulticlassClassification
                 var label = random.Next(1, 4);
                 yield return new DataPoint
                 {
-                    Label = (uint)label,
+                    Label = (uint)1,
                     // Create random features that are correlated with the label.
                     // The feature values are slightly increased by adding a
                     // constant multiple of label.
