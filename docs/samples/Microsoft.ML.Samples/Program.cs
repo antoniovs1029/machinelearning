@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Samples.Dynamic;
+using Samples.Dynamic.Trainers.MulticlassClassification;
 
 namespace Microsoft.ML.Samples
 {
@@ -10,7 +11,9 @@ namespace Microsoft.ML.Samples
 
         internal static void RunAll()
         {
-            ModelBuilder.CreateModel();
+            // ModelBuilder.CreateModel();
+            // LogLossPerClass.Example();
+            SdcaMaximumEntropy.Example();
         }
     }
 }
