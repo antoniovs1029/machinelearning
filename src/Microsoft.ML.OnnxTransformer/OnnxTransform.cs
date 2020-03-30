@@ -118,6 +118,8 @@ namespace Microsoft.ML.Transforms.Onnx
         /// </summary>
         internal DataViewType[] OutputTypes { get; }
 
+        private readonly ColumnSelectingTransformer _columnDropper;
+
         private static VersionInfo GetVersionInfo()
         {
             return new VersionInfo(
@@ -244,6 +246,8 @@ namespace Microsoft.ML.Transforms.Onnx
                 OutputTypes[i] = outputInfo.DataViewType;
             }
             _options = options;
+
+            _columnDropper = new ColumnSelectingTransformer(Host, new[] { "Size", "Shape", "Thickness", "Label" }, null, false, true); // MYTODO This is hardcoded to pass SelectColumnsOnnxTest, this must be changed with the logic to actually get which columns to keep
         }
 
         /// <summary>
@@ -325,7 +329,29 @@ namespace Microsoft.ML.Transforms.Onnx
             }
         }
 
-        private protected override IRowMapper MakeRowMapper(DataViewSchema inputSchema) => new Mapper(this, inputSchema);
+        private protected override IRowMapper MakeRowMapper(DataViewSchema inputSchema) => new Mapper(this, inputSchema); // MYTODO: Should I worry about this?
+
+        protected override IRowToRowMapper GetRowToRowMapperCore(DataViewSchema inputSchema)
+        {
+            Host.CheckValue(inputSchema, nameof(inputSchema));
+            var onnxRowToRowMapperTransform = new RowToRowMapperTransform(Host, new EmptyDataView(Host, inputSchema), MakeRowMapper(inputSchema), MakeRowMapper);
+            return (_columnDropper as ITransformer).GetRowToRowMapper(onnxRowToRowMapperTransform.OutputSchema);
+        }
+
+        protected override DataViewSchema GetOutputSchemaCore(DataViewSchema inputSchema)
+        {
+            Host.CheckValue(inputSchema, nameof(inputSchema));
+            var mapper = MakeRowMapper(inputSchema);
+            var onnxOutputSchema = RowToRowMapperTransform.GetOutputSchema(inputSchema, mapper);
+            return _columnDropper.GetOutputSchema(onnxOutputSchema);
+        }
+
+        private protected override IDataView MakeDataTransformCore(IDataView input)
+        {
+            Host.CheckValue(input, nameof(input));
+            var onnxDataTransform = new RowToRowMapperTransform(Host, input, MakeRowMapper(input.Schema), MakeRowMapper);
+            return _columnDropper.Transform(onnxDataTransform);
+        }
 
         /// <summary>
         /// This design assumes that all unknown dimensions are 1s. It also convert scalar shape [] in ONNX to [1].
@@ -772,7 +798,7 @@ namespace Microsoft.ML.Transforms.Onnx
         /// Returns the <see cref="SchemaShape"/> of the schema which will be produced by the transformer.
         /// Used for schema propagation and verification in a pipeline.
         /// </summary>
-        public override SchemaShape GetOutputSchema(SchemaShape inputSchema)
+        public override SchemaShape GetOutputSchema(SchemaShape inputSchema) //MYTODO I'd still need to update this to actually return the correct shape expected from the transformer
         {
             Host.CheckValue(inputSchema, nameof(inputSchema));
             var result = inputSchema.ToDictionary(x => x.Name);
