@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.ML;
 using Microsoft.ML.CommandLine;
@@ -117,8 +118,6 @@ namespace Microsoft.ML.Transforms.Onnx
         /// Types of <see cref="Outputs"/>. The i-th element is the type of the i-th output in <see cref="Outputs"/>.
         /// </summary>
         internal DataViewType[] OutputTypes { get; }
-
-        private readonly ColumnSelectingTransformer _columnDropper;
 
         private static VersionInfo GetVersionInfo()
         {
@@ -246,8 +245,6 @@ namespace Microsoft.ML.Transforms.Onnx
                 OutputTypes[i] = outputInfo.DataViewType;
             }
             _options = options;
-
-            _columnDropper = new ColumnSelectingTransformer(Host, new[] { "Size", "Shape", "Thickness", "Label" }, null, false, true); // MYTODO This is hardcoded to pass SelectColumnsOnnxTest, this must be changed with the logic to actually get which columns to keep
         }
 
         /// <summary>
@@ -331,11 +328,26 @@ namespace Microsoft.ML.Transforms.Onnx
 
         private protected override IRowMapper MakeRowMapper(DataViewSchema inputSchema) => new Mapper(this, inputSchema); // MYTODO: Should I worry about this?
 
+        private ColumnSelectingTransformer CreateColumnDropper(DataViewSchema inputSchema)
+        {
+            // NOTE This method is necessary because we cannot simply pass the list of DroppedColumnNames to the
+            // ColumnSelectingTransformer, as it ignores the keepHidden flag when dropping columns instead of selecting them.
+            // So it is necessary to actually find which columns to select given the input schema.
+
+            var droppedNames = GetDroppedColumnsNames();
+            var keepNames = inputSchema.Select(col => col.Name).ToList().Except(droppedNames).ToList(); // MYTODO adding the "ToList" preserve order?
+            var stdSuffix = ".output";
+            var onnxModelOutputNames = Model.ModelInfo.OutputNames.Select(o => o.EndsWith(stdSuffix) ? o.Replace(stdSuffix, "") : o);
+            keepNames = keepNames.Union(onnxModelOutputNames).ToList();
+            return new ColumnSelectingTransformer(Host, keepNames.ToArray(), null, false, true);
+        }
+
         protected override IRowToRowMapper GetRowToRowMapperCore(DataViewSchema inputSchema)
         {
             Host.CheckValue(inputSchema, nameof(inputSchema));
             var onnxRowToRowMapperTransform = new RowToRowMapperTransform(Host, new EmptyDataView(Host, inputSchema), MakeRowMapper(inputSchema), MakeRowMapper);
-            return (_columnDropper as ITransformer).GetRowToRowMapper(onnxRowToRowMapperTransform.OutputSchema);
+            var columnDropper = CreateColumnDropper(inputSchema);
+            return (columnDropper as ITransformer).GetRowToRowMapper(onnxRowToRowMapperTransform.OutputSchema);
         }
 
         protected override DataViewSchema GetOutputSchemaCore(DataViewSchema inputSchema)
@@ -343,14 +355,16 @@ namespace Microsoft.ML.Transforms.Onnx
             Host.CheckValue(inputSchema, nameof(inputSchema));
             var mapper = MakeRowMapper(inputSchema);
             var onnxOutputSchema = RowToRowMapperTransform.GetOutputSchema(inputSchema, mapper);
-            return _columnDropper.GetOutputSchema(onnxOutputSchema);
+            var columnDropper = CreateColumnDropper(inputSchema);
+            return columnDropper.GetOutputSchema(onnxOutputSchema);
         }
 
         private protected override IDataView MakeDataTransformCore(IDataView input)
         {
             Host.CheckValue(input, nameof(input));
             var onnxDataTransform = new RowToRowMapperTransform(Host, input, MakeRowMapper(input.Schema), MakeRowMapper);
-            return _columnDropper.Transform(onnxDataTransform);
+            var columnDropper = CreateColumnDropper(input.Schema);
+            return columnDropper.Transform(onnxDataTransform);
         }
 
         /// <summary>
@@ -364,6 +378,19 @@ namespace Microsoft.ML.Transforms.Onnx
                 return shape.Select(x => (x <= 0) ? 1 : x);
             }
             return new[] { 1 };
+        }
+
+        /// <summary>
+        /// To support the Onnx export of <see cref="ColumnSelectingTransformer">ColumnSelectingTransformer</see> it
+        /// was decided to drop all the columns in the input of the onnx model that weren't named in the output.
+        /// </summary>
+        /// <returns></returns>
+        internal List<string> GetDroppedColumnsNames()
+        {
+            var stdSuffix = ".output";
+            var outputNames = Model.ModelInfo.OutputNames.Select(o => o.EndsWith(stdSuffix) ? o.Replace(stdSuffix, "") : o);
+            var namesToDrop = Model.ModelInfo.InputNames.Except(outputNames);
+            return namesToDrop.ToList();
         }
 
         private sealed class Mapper : MapperBase
@@ -801,8 +828,6 @@ namespace Microsoft.ML.Transforms.Onnx
         public override SchemaShape GetOutputSchema(SchemaShape inputSchema) //MYTODO I'd still need to update this to actually return the correct shape expected from the transformer
         {
             Host.CheckValue(inputSchema, nameof(inputSchema));
-            var result = inputSchema.ToDictionary(x => x.Name);
-            var resultDic = inputSchema.ToDictionary(x => x.Name);
 
             // This loop checks if all input columns needed in the underlying transformer can be found
             // in inputSchema.
@@ -832,6 +857,8 @@ namespace Microsoft.ML.Transforms.Onnx
                     throw Host.ExceptSchemaMismatch(nameof(inputSchema), "input", input, expectedType.ToString(), col.ItemType.ToString());
             }
 
+            var droppedNames = Transformer.GetDroppedColumnsNames();
+            var resultDic = inputSchema.Where(col => !droppedNames.Contains(col.Name)).ToDictionary(x => x.Name);
             for (var i = 0; i < Transformer.Outputs.Length; i++)
             {
                 resultDic[Transformer.Outputs[i]] = new SchemaShape.Column(Transformer.Outputs[i],
