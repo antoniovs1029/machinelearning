@@ -199,6 +199,70 @@ namespace Microsoft.ML.Tests.TrainerEstimators
             Done();
         }
 
+        class LightGBMRankerDataInput
+        {
+            public float Label { get; set; }
+
+            public UInt32 GroupId { get; set; }
+
+            [VectorType(3)]
+            public float[] Features;
+
+            public static IEnumerable<LightGBMRankerDataInput> GenerateData(int numOfPoints, int seed = 0)
+            {
+                Random r = new Random(seed);
+                for (int i = 0; i < numOfPoints; i++)
+                {
+                    var rank = r.Next(1, 5);
+                    yield return new LightGBMRankerDataInput()
+                    {
+                        Label = rank,
+                        GroupId = (UInt32)(i % 2),
+                        Features = new[] { 1.0f + rank, 2.0f + rank / (i + 1), 3.0f }
+                    };
+                }
+            }
+        }
+
+        /// <summary>
+        /// LightGbmRankingTrainer TrainerEstimator test with few inputs
+        /// For some reason LightGBM ranker sometimes create trees that
+        /// Always predict "0" even if "0" wasn't used as a label in the dataset.
+        /// We remove those trees, and if no trees are left in the ensemble,
+        /// We inform the user to modify its dataset (such as by adding more samples
+        /// to it, which usually seems to fix the issue).
+        /// The sample below reproduce the issue.
+        /// </summary>
+        [LightGBMFact]
+        public void LightGBMRankerEstimatorWithFewInputs()
+        {
+            var mlContext = new MLContext(seed: 0);
+            var inputData = LightGBMRankerDataInput.GenerateData(30, seed: 0);
+            var dataView = mlContext.Data.LoadFromEnumerable<LightGBMRankerDataInput>(inputData);
+            var pipeline = mlContext.Ranking.Trainers.LightGbm();
+
+            var failWithFew = false;
+            try
+            {
+                var transformer = pipeline.Fit(dataView);
+            }
+            catch(InvalidOperationException e)
+            {
+                failWithFew = true;
+                Assert.Contains("LightGBM returned 0 valid trees. Please consider modifying your dataset or changing the parameters to get a valid predictor", e.Message);
+            }
+
+            Assert.True(failWithFew, "It was expected that LightGBM failed on this scenario");
+
+            // It should work fine with more data
+            var inputData2 = LightGBMRankerDataInput.GenerateData(100, seed: 0);
+            var dataView2 = mlContext.Data.LoadFromEnumerable<LightGBMRankerDataInput>(inputData2);
+            var pipeline2 = mlContext.Ranking.Trainers.LightGbm();
+            var model = pipeline2.Fit(dataView2);
+
+            Done();
+        }
+
         /// <summary>
         /// FastTreeRegressor TrainerEstimator test
         /// </summary>
