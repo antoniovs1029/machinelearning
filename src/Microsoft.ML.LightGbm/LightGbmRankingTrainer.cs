@@ -251,7 +251,19 @@ namespace Microsoft.ML.Trainers.LightGbm
         {
             Host.Check(TrainedEnsemble != null, "The predictor cannot be created before training is complete");
             var innerArgs = LightGbmInterfaceUtils.JoinParameters(GbmOptions);
-            return new LightGbmRankingModelParameters(Host, TrainedEnsemble, FeatureCount, innerArgs);
+
+            var filteredEnsemble = new InternalTreeEnsemble();
+            for (int i = 0; i < TrainedEnsemble.NumTrees; i ++)
+            {
+                // Ignore dummy trees.
+                if (TrainedEnsemble.GetTreeAt(i).NumLeaves > 1)
+                    filteredEnsemble.AddTree(TrainedEnsemble.GetTreeAt(i));
+            }
+
+            if (filteredEnsemble.NumTrees == 0)
+                throw new InvalidOperationException("LightGBM returned 0 valid trees. Please consider modifying your dataset or changing the parameters to get a valid predictor");
+
+            return new LightGbmRankingModelParameters(Host, filteredEnsemble, FeatureCount, innerArgs);
         }
 
         private protected override void CheckAndUpdateParametersBeforeTraining(IChannel ch, RoleMappedData data, float[] labels, int[] groups)
