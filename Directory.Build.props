@@ -25,6 +25,7 @@
       https://dotnet.myget.org/F/roslyn-analyzers/api/v3/index.json;
       https://pkgs.dev.azure.com/dnceng/public/_packaging/MachineLearning/nuget/v3/index.json;
       https://pkgs.dev.azure.com/dnceng/public/_packaging/machinelearning-testdata/nuget/v3/index.json;
+      https://aiinfra.pkgs.visualstudio.com/_packaging/OnnxRuntime/nuget/v3/index.json;
     </RestoreSources>
   </PropertyGroup>
 
