@@ -61,9 +61,16 @@ namespace Microsoft.ML.Tests
         /// call <see cref="OnnxScoringEstimator"/> to evaluate that file. The outputs of <see cref="OnnxScoringEstimator"/> are checked against the original
         /// ML.NET model's outputs.
         /// </summary>
-        [Fact]
-        public void SimpleEndToEndOnnxConversionTest()
+        [Theory]
+        [CombinatorialData]
+        public void SimpleEndToEndOnnxConversionTest(
+            [CombinatorialValues(1,2,3,4,5,6,7)] int x,
+            [CombinatorialValues(1,2,3,4,5,6,7)] int y)
         {
+            Console.WriteLine($"{x}, {y}");
+            if (x * y > 40 && (x * y) % 2 == 0)
+                Console.WriteLine("Stop!");
+
             // Step 1: Create and train a ML.NET pipeline.
             var trainDataPath = GetDataPath(TestDatasets.generatedRegressionDataset.trainFilename);
             var mlContext = new MLContext(seed: 1);
