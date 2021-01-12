@@ -68,7 +68,7 @@ namespace Microsoft.ML.Tests
             [CombinatorialValues(1,2,3,4,5,6,7)] int y)
         {
             Console.WriteLine($"{x}, {y}");
-            if (x * y > 40 && (x * y) % 2 == 0)
+            if (x * y > 30 && (x * y) % 2 == 0)
                 Console.WriteLine("Stop!");
 
             // Step 1: Create and train a ML.NET pipeline.
